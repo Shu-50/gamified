@@ -1,107 +1,12 @@
-// import { useState } from "react";
-// import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-// import { useLocation } from "react-router-dom";
 
-
-// const Dashboard = ({studentId}) => {
-//   const location = useLocation();
-//   const { studentId, roomId } = location.state || {}; // safely access
-
-
-//   const [student, setStudent] = useState({
-//     name: studentId || "Unknown",
-//     standard: "",
-//     division: "",
-//     email: "",
-//   });
-
-//   const marks = [
-//     { test: "Unit Test 1", score: 75 },
-//     { test: "Unit Test 2", score: 82 },
-//     { test: "Mid Sem", score: 70 },
-//     { test: "Final", score: 90 },
-//   ];
-
-//   const handleUpdate = (updatedData) => {
-//     setStudent(updatedData);
-//   };
-
-//   const profileFields = ["name", "standard", "division", "email"];
-//   const completed = profileFields.filter((f) => student[f]);
-//   const progress = (completed.length / profileFields.length) * 100;
-
-
-// return (
-//   <div className="bg-white shadow-xl rounded-xl p-4 w-[320px] max-h-[90vh] overflow-y-auto">
-//     {/* Profile Card */}
-//     <div className="mb-4">
-//       <h2 className="text-lg font-bold mb-2">Student Profile</h2>
-//       <p><strong>Name:</strong> {student.name}</p>
-//       <p><strong>Standard:</strong> {student.standard}</p>
-//       <p><strong>Division:</strong> {student.division}</p>
-//       <p><strong>Email:</strong> {student.email}</p>
-//       <div className="mt-3">
-//         <div className="h-2 w-full bg-gray-200 rounded">
-//           <div
-//             className="h-2 bg-green-500 rounded"
-//             style={{ width: `${progress}%` }}
-//           ></div>
-//         </div>
-//         <p className="text-xs mt-1">Profile Completion: {Math.round(progress)}%</p>
-//       </div>
-//     </div>
-
-//     {/* Edit Form */}
-//     <form
-//       onSubmit={(e) => {
-//         e.preventDefault();
-//         handleUpdate(student);
-//       }}
-//       className="mb-4"
-//     >
-//       <h3 className="text-md font-semibold mb-2">Edit Profile</h3>
-//       {profileFields.map((field) => (
-//         <input
-//           key={field}
-//           type="text"
-//           name={field}
-//           placeholder={field.charAt(0).toUpperCase() + field.slice(1)}
-//           value={student[field]}
-//           onChange={(e) =>
-//             setStudent({ ...student, [field]: e.target.value })
-//           }
-//           className="w-full p-1 border mt-1 rounded text-sm"
-//         />
-//       ))}
-//       <button className="mt-3 bg-blue-500 text-white px-3 py-1 rounded text-sm">
-//         Update
-//       </button>
-//     </form>
-
-//     {/* Performance Chart */}
-//     <div>
-//       <h3 className="text-md font-semibold mb-2">Marks Performance</h3>
-//       <ResponsiveContainer width="100%" height={150}>
-//         <LineChart data={marks}>
-//           <XAxis dataKey="test" />
-//           <YAxis />
-//           <Tooltip />
-//           <Line type="monotone" dataKey="score" stroke="#3b82f6" />
-//         </LineChart>
-//       </ResponsiveContainer>
-//     </div>
-//   </div>
-// );
-// }
-
-// export default Dashboard;
 import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
   const location = useLocation();
-  const { studentId = "", roomId = "" } = location.state || {};
+  const navigate = useNavigate();
+  const { studentId, roomId } = location.state || {};
 
   const [student, setStudent] = useState({
     name: "",
@@ -110,43 +15,107 @@ const Dashboard = () => {
     email: "",
   });
 
+  const [marks, setMarks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const profileFields = ["name", "standard", "division", "email"];
   const completed = profileFields.filter((f) => student[f]);
   const progress = (completed.length / profileFields.length) * 100;
 
-  const marks = [
-    { test: "Unit Test 1", score: 75 },
-    { test: "Unit Test 2", score: 82 },
-    { test: "Mid Sem", score: 70 },
-    { test: "Final", score: 90 },
-  ];
-
+  // Load student info on component mount
   useEffect(() => {
-    const fetchStudentDetails = async () => {
-      if (!studentId) return;
+    const fetchStudentProfile = async () => {
       try {
-        const res = await fetch(`/api/student/${studentId}`);
-        const data = await res.json();
-        setStudent(data);
+        setLoading(true);
+        const response = await fetch('/api/auth/profile', {
+          method: 'GET',
+          credentials: 'include', // Important for session cookies
+        });
+
+        if (!response.ok) {
+          // If not authenticated, redirect to login
+          if (response.status === 401) {
+            navigate('/');
+            return;
+          }
+          throw new Error('Failed to fetch profile');
+        }
+
+        const data = await response.json();
+        setStudent({
+          name: data.name || "",
+          standard: data.standard || "",
+          division: data.division || "",
+          email: data.email || "",
+        });
+
+        if (data.marks && Array.isArray(data.marks)) {
+          setMarks(data.marks);
+        }
+        
+        setLoading(false);
       } catch (err) {
-        console.error("Error fetching student details:", err);
+        console.error("Error fetching profile:", err);
+        setError(err.message);
+        setLoading(false);
       }
     };
 
-    fetchStudentDetails();
-  }, [studentId]);
+    fetchStudentProfile();
+  }, [navigate]);
 
-  const handleUpdate = (e) => {
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    // Optional: POST update to server here
-    console.log("Updated student info:", student);
+    
+    try {
+      const response = await fetch('/api/auth/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(student),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+      
+      const data = await response.json();
+      alert("Profile updated successfully!");
+      
+      // Update localStorage
+      const storedInfo = localStorage.getItem("studentInfo");
+      if (storedInfo) {
+        const parsedInfo = JSON.parse(storedInfo);
+        localStorage.setItem("studentInfo", JSON.stringify({
+          ...parsedInfo,
+          name: data.name,
+          standard: data.standard,
+          division: data.division,
+          email: data.email
+        }));
+      }
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("Failed to update profile: " + err.message);
+    }
   };
+
+  if (loading) {
+    return <div className="text-center p-5">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center p-5 text-red-500">Error: {error}</div>;
+  }
 
   return (
     <div className="bg-white shadow-xl rounded-2xl p-5 w-full max-w-sm mx-auto max-h-[90vh] overflow-y-auto text-sm">
       {/* Profile Card */}
       <div className="mb-6">
         <h2 className="text-xl font-bold mb-3 text-indigo-600">Student Profile</h2>
+        <p><strong>Student ID:</strong> {studentId || "N/A"}</p>
+        <p><strong>Room ID:</strong> {roomId || "N/A"}</p>
         <p><strong>Name:</strong> {student.name || "N/A"}</p>
         <p><strong>Standard:</strong> {student.standard || "N/A"}</p>
         <p><strong>Division:</strong> {student.division || "N/A"}</p>
@@ -175,7 +144,7 @@ const Dashboard = () => {
             className="w-full p-2 mb-2 border border-gray-300 rounded text-sm"
           />
         ))}
-        <button className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mt-2">
+        <button type="submit" className="w-full bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded mt-2">
           Update
         </button>
       </form>
@@ -183,14 +152,18 @@ const Dashboard = () => {
       {/* Performance Chart */}
       <div>
         <h3 className="text-md font-semibold mb-2">Marks Performance</h3>
-        <ResponsiveContainer width="100%" height={160}>
-          <LineChart data={marks}>
-            <XAxis dataKey="test" />
-            <YAxis />
-            <Tooltip />
-            <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} />
-          </LineChart>
-        </ResponsiveContainer>
+        {marks.length > 0 ? (
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={marks}>
+              <XAxis dataKey="test" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="score" stroke="#3b82f6" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <p className="text-gray-500 text-center py-4">No marks data available</p>
+        )}
       </div>
     </div>
   );

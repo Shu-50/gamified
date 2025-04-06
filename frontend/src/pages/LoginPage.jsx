@@ -1,4 +1,5 @@
 
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,40 +9,7 @@ function LoginPage() {
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-//   const handleLogin = async (e) => {
-//     e.preventDefault();
-//     try {
-//       const response = await fetch('/api/auth/login', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ studentId, roomId, password }),
-//       });
-      
-//       if (response.ok) {
-//         navigate(`/classroom/${roomId}`)
-         
-//       if (response.ok) {
-//         navigate(`/classroom/${roomId}`,{
-//           state:{
-//             studentId,
-//             roomId,
-//             },
-//         })
-//         };
-//       } else {
-//         alert('Login failed. Please check your credentials.');
-//       }
-//     } catch (error) {
-//       console.error('Login error:', error);
-//     }
-//     // After successful login and getting response
-// localStorage.setItem("studentInfo", JSON.stringify({
-//     id: response.data.studentId,
-//     name: response.data.name
-//   }));
-  
-//   };
-const handleLogin = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const response = await fetch('/api/auth/login', {
@@ -56,11 +24,14 @@ const handleLogin = async (e) => {
         // Store user info locally
         localStorage.setItem("studentInfo", JSON.stringify({
           id: data.studentId,
-          name: data.name
+          name: data.name,
+          standard: data.standard,
+          division: data.division,
+          email: data.email
         }));
   
-        // Navigate to classroom with state
-        navigate(`/classroom/${roomId}`, {
+        // Navigate to dashboard with student ID and room ID
+        navigate(`/classroom/:roomId/`, {
           state: {
             studentId: data.studentId,
             roomId: roomId,
@@ -73,7 +44,6 @@ const handleLogin = async (e) => {
       console.error('Login error:', error);
     }
   };
-  
   
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">

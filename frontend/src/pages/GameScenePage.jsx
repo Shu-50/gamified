@@ -1,8 +1,6 @@
 
 import Phaser from "phaser";
-// import GameScene from "../game/ClassroomPage"; // or your main game scene
-// import GameScene from "../game/GameScene"; // or your main game scene
-import GameScene from "../game/GameComponent"; // or your main game scene
+import GameScene from "../game/ClassroomPage"; 
 import { useEffect, useState } from "react";
 import ChatBox from "./Chatbot";
 import Dashboard from "./Dashboard"

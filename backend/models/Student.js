@@ -1,24 +1,29 @@
-// const mongoose = require("mongoose");
 
-// const studentSchema = new mongoose.Schema({
-//   studentId: { type: String, required: true, unique: true },
-//   password: { type: String, required: true },
-//   roomId: { type: String, required: true },
-// });
+const mongoose = require("mongoose");
 
-// module.exports = mongoose.model("Student", studentSchema);
+const markSchema = new mongoose.Schema({
+  test: {
+    type: String,
+    required: true
+  },
+  score: {
+    type: Number,
+    required: true
+  },
+  date: {
+    type: Date,
+    default: Date.now
+  }
+});
 
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
-
-const StudentSchema = new mongoose.Schema({
+const studentSchema = new mongoose.Schema({
   studentId: {
     type: String,
     required: true,
     unique: true,
     trim: true
   },
-  name: {
+  roomId: {
     type: String,
     required: true,
     trim: true
@@ -27,44 +32,29 @@ const StudentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  character: {
+  name: {
     type: String,
-    default: 'default-character' // Path to default character image
+    default: ""
   },
-  lastPosition: {
-    x: {
-      type: Number,
-      default: 100
-    },
-    y: {
-      type: Number,
-      default: 100
-    }
+  standard: {
+    type: String,
+    default: ""
   },
+  division: {
+    type: String,
+    default: ""
+  },
+  email: {
+    type: String,
+    default: ""
+  },
+  marks: [markSchema],
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-// Hash password before saving
-StudentSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) {
-    return next();
-  }
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
+const Student = mongoose.model("Student", studentSchema);
 
-// Method to compare passwords
-StudentSchema.methods.matchPassword = async function(enteredPassword) {
-  return await bcrypt.compare(enteredPassword, this.password);
-};
-
-module.exports = mongoose.model('Student', StudentSchema);
+module.exports = Student;
